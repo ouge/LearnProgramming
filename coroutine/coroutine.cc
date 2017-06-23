@@ -1,21 +1,21 @@
-#include <climits>
-#include <cstring>
 #include <list>
 #include <pthread.h>
 #include <csetjmp>
-#include <malloc.h>
+#include <cstdlib>
+#include <climits>
+#include <cstring>
 
-typedef void *(*RoutineHandler)(void *);
+typedef void* (*RoutineHandler)(void*);
 
 struct RoutineInfo {
-    void *         param;
+    void*          param;
     RoutineHandler handler;
-    void *         ret;
+    void*          ret;
     bool           stopped;
 
     jmp_buf buf;
 
-    void * stackbase;
+    void*  stackbase;
     size_t stacksize;
 
     pthread_attr_t attr;
@@ -33,6 +33,7 @@ struct RoutineInfo {
 
         pthread_attr_init(&attr);
         if (stacksize) {
+            // 在堆上创建函数栈
             if (0 != pthread_attr_setstack(&attr, stackbase, stacksize)) {
                 free(stackbase);
                 stackbase = NULL;
@@ -49,19 +50,20 @@ struct RoutineInfo {
     }
 };
 
-std::list<RoutineInfo *> InitRoutines() {
-    std::list<RoutineInfo *> list;
-    RoutineInfo *            main = new RoutineInfo(0);
+std::list<RoutineInfo*> InitRoutines() {
+    std::list<RoutineInfo*> list;
+    RoutineInfo*            main = new RoutineInfo(0);
     list.push_back(main);
     return list;
 }
-std::list<RoutineInfo *> routines = InitRoutines();
+std::list<RoutineInfo*> routines = InitRoutines();
 
-void *stackBackup = NULL;
-void *CoroutineStart(void *pRoutineInfo);
+void* stackBackup = NULL;
+void* CoroutineStart(void* pRoutineInfo);
 
-int CreateCoroutine(RoutineHandler handler, void *param) {
-    RoutineInfo *info = new RoutineInfo(PTHREAD_STACK_MIN + 0x4000);
+// 创建协程
+int CreateCoroutine(RoutineHandler handler, void* param) {
+    RoutineInfo* info = new RoutineInfo(PTHREAD_STACK_MIN + 0x4000);
     if (info->stackbase == NULL) {
         delete info;
         return __LINE__;
@@ -77,7 +79,7 @@ int CreateCoroutine(RoutineHandler handler, void *param) {
         return __LINE__;
     }
 
-    void *status;
+    void* status;
     pthread_join(thread, &status);
 
     if (stackBackup == NULL) {    // if we failed to backup the stack
@@ -95,9 +97,9 @@ int CreateCoroutine(RoutineHandler handler, void *param) {
 
 void Switch();
 
-void *CoroutineStart(void *pRoutineInfo) {
-    RoutineInfo &info = *(RoutineInfo *)pRoutineInfo;
-
+void* CoroutineStart(void* pRoutineInfo) {
+    RoutineInfo& info = *(RoutineInfo*)pRoutineInfo;
+    // 保存上下文
     if (!setjmp(info.buf)) {
         // back up the stack, and then exit
         stackBackup = realloc(stackBackup, info.stacksize);
@@ -105,7 +107,7 @@ void *CoroutineStart(void *pRoutineInfo) {
 
         pthread_exit(NULL);
 
-        return (void *)0;
+        return (void*)0;
     }
 
     info.ret = info.handler(info.param);
@@ -113,13 +115,14 @@ void *CoroutineStart(void *pRoutineInfo) {
     info.stopped = true;
     Switch();    // never return
 
-    return (void *)0;    // suppress compiler warning
+    return (void*)0;    // suppress compiler warning
 }
 
-std::list<RoutineInfo *> stoppedRoutines = std::list<RoutineInfo *>();
+std::list<RoutineInfo*> stoppedRoutines = std::list<RoutineInfo*>();
 
+// 切换协程
 void Switch() {
-    RoutineInfo *current = routines.front();
+    RoutineInfo* current = routines.front();
     routines.pop_front();
 
     if (current->stopped) {
@@ -138,27 +141,5 @@ void Switch() {
     if (stoppedRoutines.size()) {
         delete stoppedRoutines.front();
         stoppedRoutines.pop_front();
-    }
-}
-
-#include <iostream>
-using namespace std;
-
-#include <sys/wait.h>
-
-void *foo(void *) {
-    for (int i = 0; i < 2; ++i) {
-        cout << "foo: " << i << endl;
-        sleep(1);
-        Switch();
-    }
-}
-
-int main() {
-    CreateCoroutine(foo, NULL);
-    for (int i = 0; i < 6; ++i) {
-        cout << "main: " << i << endl;
-        sleep(1);
-        Switch();
     }
 }
