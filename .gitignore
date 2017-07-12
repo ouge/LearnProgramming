@@ -1,2 +1,4 @@
 *.o
 settings.json
+*.exe
+*.out
