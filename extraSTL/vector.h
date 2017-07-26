@@ -37,7 +37,8 @@ class vector {
     }
     template <class InputIterator>
     vector(InputIterator first, InputIterator last) {
-        vector_aux(first, last, std::is_integral_t<InputIterator>);
+        vector_aux(first, last,
+                   typename std::is_integral<InputIterator>::type());
     }
     vector(const vector& v) { allocateAndCopy(v.start_, v.finish_); }
     vector(vector&& v) {
@@ -147,12 +148,14 @@ class vector {
     }
 
     void insert(iterator position, const size_type& n, const value_type& val) {
-        insert_aux(position, n, val, std::is_integral_t<size_type>);
+        insert_aux(position, n, val,
+                   typename std::is_integral<size_type>::type());
     }
-    // 使用is_integral_t
+
     template <class InputIterator>
     void insert(iterator position, InputIterator first, InputIterator last) {
-        insert_aux(position, first, last, std::is_integral_t<InputIterator>);
+        insert_aux(position, first, last,
+                   typename std::is_integral<InputIterator>::type());
     }
 
     void resize(size_type n, value_type val = value_type()) {
@@ -208,7 +211,7 @@ class vector {
   private:
     void destroyAndDeallocateAll() {
         if (capacity() != 0) {
-            alloc_.destroy(start_, finish_);
+            for (auto i = start_; i < finish_; i++) { alloc_.destroy(i); }
             alloc_.deallocate(start_, capacity());
         }
     }
