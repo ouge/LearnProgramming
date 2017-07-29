@@ -4,10 +4,11 @@
 #include <algorithm>
 #include <memory>
 #include <type_traits>
+#include <cassert>
 
 namespace extrastl {
 
-template <class T, class Alloc = std::allocator<T>>
+template <class T>
 class vector {
   public:
     using value_type      = T;
@@ -18,18 +19,17 @@ class vector {
     using const_reference = const T&;
     using size_type       = size_t;
     using difference_type = ptrdiff_t;
-    using allocator_type  = Alloc;
+    using allocator_type  = std::allocator<T>;
 
   private:
-    T*             start_;
-    T*             finish_;
-    T*             endOfStorage_;
-    allocator_type alloc_;
+    T* start_;
+    T* finish_;
+    T* endOfStorage_;
 
   public:
-    // *********************************
-    // 构造析构
-    // *********************************
+    // **************************************************************
+    // ************************构造函数*******************************
+    // **************************************************************
     vector() : start_(0), finish_(0), endOfStorage_(0) {}
     explicit vector(const size_type n) { allocateAndFillN(n, value_type()); }
     vector(const size_type n, const value_type& value) {
@@ -65,11 +65,9 @@ class vector {
         return *this;
     }
 
-    allocator_type get_allocator() const { return alloc_; }
-
-    // *********************************
-    // 迭代器
-    // *********************************
+    // **************************************************************
+    // ***************************迭代器********************************
+    // **************************************************************
     iterator       begin() { return (start_); }
     const_iterator begin() const { return (start_); }
     const_iterator cbegin() const { return (start_); }
@@ -77,17 +75,18 @@ class vector {
     const_iterator end() const { return (finish_); }
     const_iterator cend() const { return (finish_); }
 
-    // *********************************
-    // 容量
-    // *********************************
+    // **************************************************************
+    // ***************************容量********************************
+    // **************************************************************
     size_type size() const { return finish_ - start_; }
     size_type capacity() const { return endOfStorage_ - start_; }
     bool      empty() const { return start_ == finish_; }
 
     // 调整 capacity 大小
     void reserve(size_type n) {
+        allocator_type alloc;
         if (n <= capacity()) return;
-        T* newStart  = alloc_.allocate(n);
+        T* newStart  = alloc.allocate(n);
         T* newFinish = std::uninitialized_copy(begin(), end(), newStart);
         destroyAndDeallocateAll();
 
@@ -100,16 +99,17 @@ class vector {
     // 重新分配一块 size 大小的空间，将 0 - size-1 的数据复制过去。
     // 并释放原 capacity 大小的空间。
     void shrink_to_fit() {
-        T* t    = static_cast<T*>(alloc_.allocate(size()));
-        finish_ = std::uninitialized_copy(start_, finish_, t);
-        alloc_.deallocate(start_, capacity());
+        allocator_type alloc;
+        T*             t = static_cast<T*>(alloc.allocate(size()));
+        finish_          = std::uninitialized_copy(start_, finish_, t);
+        alloc.deallocate(start_, capacity());
         start_        = t;
         endOfStorage_ = finish_;
     };
 
-    // *********************************
-    // 成员访问
-    // *********************************
+    // **************************************************************
+    // ************************元素访问*******************************
+    // **************************************************************
     reference operator[](const difference_type i) { return *(begin() + i); }
     const_reference operator[](const difference_type i) const {
         return *(cbegin() + i);
@@ -118,11 +118,12 @@ class vector {
     reference back() { return *(end() - 1); }
     pointer   data() { return start_; }
 
-    // *********************************
-    // 修改
-    // *********************************
+    // **************************************************************
+    // ***************************修改********************************
+    // **************************************************************
     void clear() {
-        alloc_.destroy(start_, finish_);
+        allocator_type alloc;
+        alloc.destroy(start_, finish_);
         finish_ = start_;
     }
 
@@ -137,8 +138,9 @@ class vector {
     void push_back(const value_type& value) { insert(end(), value); }
 
     void pop_back() {
+        allocator_type alloc;
         --finish_;
-        alloc_.destroy(finish_);
+        alloc.destroy(finish_);
     }
 
     iterator insert(iterator position, const value_type& val) {
@@ -159,15 +161,16 @@ class vector {
     }
 
     void resize(size_type n, value_type val = value_type()) {
+        allocator_type alloc;
         if (n < size()) {
-            alloc_.destroy(start_ + n, finish_);
+            alloc.destroy(start_ + n, finish_);
             finish_ = start_ + n;
         } else if (n > size() && n <= capacity()) {
             auto lengthOfInsert = n - size();
             finish_ = std::uninitialized_fill_n(finish_, lengthOfInsert, val);
         } else if (n > capacity()) {
             auto lengthOfInsert = n - size();
-            T*   newStart  = alloc_.allocate(getNewCapacity(lengthOfInsert));
+            T*   newStart  = alloc.allocate(getNewCapacity(lengthOfInsert));
             T*   newFinish = std::uninitialized_copy(begin(), end(), newStart);
             newFinish =
                     std::uninitialized_fill_n(newFinish, lengthOfInsert, val);
@@ -191,40 +194,26 @@ class vector {
         return (first);
     }
 
-    // *********************************
-    // 比较
-    // *********************************
-    bool operator==(const vector& v) const {
-        if (size() != v.size()) {
-            return false;
-        } else {
-            auto ptr1 = start_;
-            auto ptr2 = v.start_;
-            for (; ptr1 != finish_ && ptr2 != v.finish_; ++ptr1, ++ptr2) {
-                if (*ptr1 != *ptr2) return false;
-            }
-            return true;
-        }
-    }
-    bool operator!=(const vector& v) const { return !(*this == v); }
-
   private:
     void destroyAndDeallocateAll() {
+        allocator_type alloc;
         if (capacity() != 0) {
-            for (auto i = start_; i < finish_; i++) { alloc_.destroy(i); }
-            alloc_.deallocate(start_, capacity());
+            for (auto i = start_; i < finish_; i++) { alloc.destroy(i); }
+            alloc.deallocate(start_, capacity());
         }
     }
 
     void allocateAndFillN(const size_type n, const value_type& value) {
-        start_ = alloc_.allocate(n);
+        allocator_type alloc;
+        start_ = alloc.allocate(n);
         std::uninitialized_fill_n(start_, n, value);
         finish_ = endOfStorage_ = start_ + n;
     }
 
     template <class InputIterator>
     void allocateAndCopy(InputIterator first, InputIterator last) {
-        start_        = alloc_.allocate(last - first);
+        allocator_type alloc;
+        start_        = alloc.allocate(last - first);
         finish_       = std::uninitialized_copy(first, last, start_);
         endOfStorage_ = finish_;
     }
@@ -266,6 +255,7 @@ class vector {
     template <class Integer>
     void insert_aux(iterator position, Integer n, const value_type& value,
                     std::true_type) {
+        allocator_type alloc;
         assert(n != 0);
         difference_type locationLeft =
                 endOfStorage_ - finish_;    // the size of left storage
@@ -276,7 +266,7 @@ class vector {
             for (; tempPtr - position >= 0;
                  --tempPtr) {    //move the [position, finish_) back
                 //*(tempPtr + locationNeed) = *tempPtr;//bug
-                construct(tempPtr + locationNeed, *tempPtr);
+                alloc.construct(tempPtr + locationNeed, *tempPtr);
             }
             std::uninitialized_fill_n(position, n, value);
             finish_ += locationNeed;
@@ -288,9 +278,10 @@ class vector {
     template <class InputIterator>
     void reallocateAndCopy(iterator position, InputIterator first,
                            InputIterator last) {
+        allocator_type  alloc;
         difference_type newCapacity = getNewCapacity(last - first);
 
-        T* newStart        = alloc_.allocate(newCapacity);
+        T* newStart        = alloc.allocate(newCapacity);
         T* newEndOfStorage = newStart + newCapacity;
         T* newFinish = std::uninitialized_copy(begin(), position, newStart);
         newFinish    = std::uninitialized_copy(first, last, newFinish);
@@ -304,9 +295,10 @@ class vector {
 
     void reallocateAndFillN(iterator position, const size_type& n,
                             const value_type& val) {
+        allocator_type  alloc;
         difference_type newCapacity = getNewCapacity(n);
 
-        T* newStart        = alloc_.allocate(newCapacity);
+        T* newStart        = alloc.allocate(newCapacity);
         T* newEndOfStorage = newStart + newCapacity;
         T* newFinish = std::uninitialized_copy(begin(), position, newStart);
         newFinish    = std::uninitialized_fill_n(newFinish, n, val);
@@ -327,17 +319,5 @@ class vector {
 
 };    // end of class vector
 }    // namespace extrastl
-
-template <class T, class Alloc>
-bool operator==(const extrastl::vector<T, Alloc>& v1,
-                const extrastl::vector<T, Alloc>& v2) {
-    //return v1 == v2;
-    return v1.operator==(v2);
-}
-template <class T, class Alloc>
-bool operator!=(const extrastl::vector<T, Alloc>& v1,
-                const extrastl::vector<T, Alloc>& v2) {
-    return !(v1 == v2);
-}
 
 #endif

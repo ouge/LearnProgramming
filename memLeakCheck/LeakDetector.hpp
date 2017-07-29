@@ -5,9 +5,6 @@
 #include <cstdint>
 #include <cstring>
 
-void* operator new(size_t _size, char* _file, unsigned int _line);
-void* operator new[](size_t _size, char* _file, unsigned int _line);
-
 class _leak_detector {
   public:
     // callCount 保证了 LeakDector() 只调用了一次

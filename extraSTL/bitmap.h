@@ -1,5 +1,5 @@
-#ifndef BITMAP_H
-#define BITMAP_H
+#ifndef EXTRASTL_BITMAP_H
+#define EXTRASTL_BITMAP_H
 
 #include <iostream>
 #include <memory>
@@ -8,6 +8,7 @@
 
 namespace extrastl {
 
+// TODO: 拓展成2bit位图
 template <size_t N>
 class bitmap {
   public:
@@ -25,11 +26,11 @@ class bitmap {
         allocateAndFillN(sizeOfUINT8_, 0);
     }
 
-    // Returns the number of bits in the bitset that are set (i.e., that have a value of one)
+    // 统计位图中 1 的个数
     size_t count() const {
-        uint8_t* ptr = start_;
-        size_t   sum = 0;
-        for (; ptr != finish_; ++ptr) {
+        size_t sum = 0;
+        for (uint8_t* ptr = start_; ptr != finish_; ++ptr) {
+            // 检查每一个Byte中1的个数
             for (int i = 0; i != 8; ++i) {
                 uint8_t t = getMask(*ptr, i);
                 if (t) { ++sum; }
@@ -38,6 +39,7 @@ class bitmap {
         return sum;
     }
 
+    // 返回位图总位数
     size_t size() const { return size_; }
 
     // 检查第pos位是否为1。
@@ -51,43 +53,38 @@ class bitmap {
         return false;
     }
 
-    // Returns whether any of the bits is set (i.e., whether at least one bit in the bitset is set to one).
     bool any() const {
-        uint8_t* ptr = start_;
-        for (; ptr != finish_; ++ptr) {
+        for (uint8_t* ptr = start_; ptr != finish_; ++ptr) {
             uint8_t n = *ptr;
             if (n != 0) return true;
         }
         return false;
     }
 
-    // Returns whether none of the bits is set (i.e., whether all bits in the bitset have a value of zero).
     bool none() const { return !any(); }
 
-    //Returns whether all of the bits in the bitset are set (to one).
     bool all() const {
-        uint8_t* ptr = start_;
-        for (; ptr != finish_; ++ptr) {
+        for (uint8_t* ptr = start_; ptr != finish_; ++ptr) {
             if ((uint8_t)*ptr != (uint8_t)~0) return false;
         }
         return true;
     }
 
     bitmap& set() {
-        uninitialized_fill_n(start_, sizeOfUINT8_, ~0);
+        std::uninitialized_fill_n(start_, sizeOfUINT8_, ~0);
         return *this;
     }
     bitmap& set(size_t pos, bool val = true) {
         THROW(pos);
         const auto nth = getNth(pos);
         const auto mth = getMth(pos);
-        uint8_t*   ptr = start_ + nth;    //get the nth uint8_t
+        uint8_t*   ptr = start_ + nth;
         setNthInInt8(*ptr, mth, val);
         return *this;
     }
 
     bitmap& reset() {
-        uninitialized_fill_n(start_, sizeOfUINT8_, 0);
+        std::uninitialized_fill_n(start_, sizeOfUINT8_, 0);
         return *this;
     }
     bitmap& reset(size_t pos) {
@@ -96,8 +93,7 @@ class bitmap {
     }
 
     bitmap& flip() {
-        uint8_t* ptr = start_;
-        for (; ptr != finish_; ++ptr) {
+        for (uint8_t* ptr = start_; ptr != finish_; ++ptr) {
             uint8_t n = *ptr;
             *ptr      = ~n;
         }
@@ -118,8 +114,7 @@ class bitmap {
 
     std::string to_string() const {
         std::string str;
-        uint8_t*    ptr = start_;
-        for (; ptr != finish_; ++ptr) {
+        for (uint8_t* ptr = start_; ptr != finish_; ++ptr) {
             uint8_t n = *ptr;
             for (int i = 0; i != 8; ++i) {
                 uint8_t t = getMask(n, i);
@@ -135,7 +130,7 @@ class bitmap {
   private:
     // 将分配的空间大小上调至 8bit 的倍数
     size_t roundUp8(size_t bits) {
-        return ((bytes + EAlign::ALIGN - 1) & ~(EAlign::ALIGN - 1));
+        return ((bits + EAlign::ALIGN - 1) & ~(EAlign::ALIGN - 1));
     }
 
     // 将第 i * 8 + nth 位设为 newVal
@@ -153,6 +148,7 @@ class bitmap {
         }
     }
 
+    // 获得8bit i
     uint8_t getMask(uint8_t i, size_t nth) const { return (i & (1 << nth)); }
 
     // 返回 n 在第几个 Byte
@@ -163,15 +159,16 @@ class bitmap {
 
     // 使用 std::allocator 分配 n Bytes 空间并用 val 初始化。
     void allocateAndFillN(size_t n, uint8_t val) {
-        start_  = dataAllocator::allocate(n);
-        finish_ = uninitialized_fill_n(start_, n, val);
+        dataAllocator alloc;
+        start_  = alloc.allocate(n);
+        finish_ = std::uninitialized_fill_n(start_, n, val);
     }
 
     // 如果 n 超出范围抛出异常
     void THROW(size_t n) const {
         if (!(0 <= n && n < size())) throw std::out_of_range("Out Of Range");
     };
-};    // end of bitmap
+};
 }
 
 template <size_t N>

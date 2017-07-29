@@ -6,8 +6,8 @@
 #include <ctime>
 #include <queue>
 template <typename T>
-void RbTree<T>::LeftRotate(RbNode<T> *x) {
-    RbNode<T> *y = x->right;
+void RbTree<T>::LeftRotate(RbNode<T>* x) {
+    RbNode<T>* y = x->right;
     x->right     = y->left;
     if (y->left != Nil) { y->left->pre = x; }
     y->pre = x->pre;
@@ -21,8 +21,8 @@ void RbTree<T>::LeftRotate(RbNode<T> *x) {
     x->pre            = y;
 }
 template <typename T>
-void RbTree<T>::RightRotate(RbNode<T> *y) {
-    RbNode<T> *x = y->left;
+void RbTree<T>::RightRotate(RbNode<T>* y) {
+    RbNode<T>* x = y->left;
     y->left      = x->right;
     if (x->right != Nil) { x->right->pre = y; }
     x->pre = y->pre;
@@ -36,8 +36,8 @@ void RbTree<T>::RightRotate(RbNode<T> *y) {
     y->pre            = x;
 }
 template <typename T>
-void RbTree<T>::RbInsertFixup(RbNode<T> *z) {
-    RbNode<T> *y;
+void RbTree<T>::RbInsertFixup(RbNode<T>* z) {
+    RbNode<T>* y;
     while (z->pre->color == RED) {
         if (z->pre == z->pre->pre->left) {
             y = z->pre->pre->right;
@@ -74,10 +74,10 @@ void RbTree<T>::RbInsertFixup(RbNode<T> *z) {
     root->color = BLACK;
 }
 template <typename T>
-void RbTree<T>::RbInsert(const T &zz) {
-    RbNode<T> *z = new RbNode<T>(zz);
-    RbNode<T> *y = Nil;
-    RbNode<T> *x = root;
+void RbTree<T>::RbInsert(const T& zz) {
+    RbNode<T>* z = new RbNode<T>(zz);
+    RbNode<T>* y = Nil;
+    RbNode<T>* x = root;
     while (x != Nil) {    //find where this Node should be put
         y = x;
         if (z->val < x->val) {
@@ -105,7 +105,7 @@ int RbTree<T>::getCount() {
     return cnt;
 }
 template <typename T>
-void RbTree<T>::RbTransplant(RbNode<T> *u, RbNode<T> *v) {
+void RbTree<T>::RbTransplant(RbNode<T>* u, RbNode<T>* v) {
     if (u->pre == Nil) {
         root = v;
     } else if (u == u->pre->left) {
@@ -132,9 +132,9 @@ TREE-DELETE(T,z){
 }
 */
 template <typename T>
-void RbTree<T>::RbDelete(RbNode<T> *z) {
-    RbNode<T> *y = z;
-    RbNode<T> *x;
+void RbTree<T>::RbDelete(RbNode<T>* z) {
+    RbNode<T>* y = z;
+    RbNode<T>* x;
     bool       yOriColor = y->color;
     if (z->left == Nil) {
         x = z->right;
@@ -164,8 +164,8 @@ void RbTree<T>::RbDelete(RbNode<T> *z) {
     z = nullptr;
 }
 template <typename T>
-void RbTree<T>::RbDeleteFixup(RbNode<T> *x) {
-    RbNode<T> *w;
+void RbTree<T>::RbDeleteFixup(RbNode<T>* x) {
+    RbNode<T>* w;
     while (x != root && x->color == BLACK) {
         if (x == x->pre->left)    //x是它父节点的左儿子
         {
@@ -219,8 +219,8 @@ void RbTree<T>::RbDeleteFixup(RbNode<T> *x) {
     x->color = BLACK;
 }
 template <typename T>
-std::pair<bool, RbNode<T> *> RbTree<T>::RbFind(const T &t) {
-    RbNode<T> *ret = root;
+std::pair<bool, RbNode<T>*> RbTree<T>::RbFind(const T& t) {
+    RbNode<T>* ret = root;
     while (ret != Nil && ret->val != t) {
         if (ret->val > t) {
             ret = ret->left;
@@ -235,11 +235,11 @@ std::pair<bool, RbNode<T> *> RbTree<T>::RbFind(const T &t) {
 }
 template <typename T>
 void RbTree<T>::RbClear() {
-    std::queue<RbNode<T> *> myqueue;
+    std::queue<RbNode<T>*> myqueue;
     if (this->root != this->Nil && this->root != nullptr)
         myqueue.push(this->root);
     while (!myqueue.empty()) {
-        RbNode<T> *temp = myqueue.front();
+        RbNode<T>* temp = myqueue.front();
         myqueue.pop();
         if (temp->left != Nil) { myqueue.push(temp->left); }
         if (temp->right != Nil) { myqueue.push(temp->right); }
@@ -251,13 +251,13 @@ void RbTree<T>::RbClear() {
     root = nullptr;
 }
 template <typename TT>
-ostream &operator<<(ostream &os, RbTree<TT> *T) {
+ostream& operator<<(ostream& os, RbTree<TT>* T) {
     // level travel
-    std::vector<RbNode<TT> *> myvec;
+    std::vector<RbNode<TT>*> myvec;
     myvec.push_back(T->root);
     int level = 1;
     while (!myvec.empty()) {
-        std::vector<RbNode<TT> *> vectemp;
+        std::vector<RbNode<TT>*> vectemp;
         os << "level " << level << " : ";
         for (int i = 0; i < myvec.size(); i++) {
             if (myvec[i] != T->Nil) {
@@ -284,7 +284,7 @@ ostream &operator<<(ostream &os, RbTree<TT> *T) {
 
 int main() {
     {
-        RbTree<int> *    T = new RbTree<int>();
+        RbTree<int>*     T = new RbTree<int>();
         std::vector<int> va;
         va.reserve(1000000);
         for (int i = 0; i < 1000000; i++) { va.push_back(i); }
@@ -303,7 +303,7 @@ int main() {
 
         ofs << T;
         std::clock_t b_start = std::clock();
-        std::pair<bool, RbNode<int> *> pairret = T->RbFind(3333);
+        std::pair<bool, RbNode<int>*> pairret = T->RbFind(3333);
         std::clock_t b_end = std::clock();
         std::cout << (b_end - b_start) << "us" << std::endl;
         std::cout << pairret.second->color << "  " << pairret.second->val
